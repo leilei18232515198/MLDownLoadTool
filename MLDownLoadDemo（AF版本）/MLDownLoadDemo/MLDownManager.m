@@ -32,8 +32,8 @@ static MLDownManager *manager = nil;
         return;
     }
     /* 创建网络下载对象 */
-  AFURLSessionManager *manager = [[AFURLSessionManager alloc] initWithSessionConfiguration:[NSURLSessionConfiguration defaultSessionConfiguration]];  
-    
+    AFURLSessionManager *manager = [[AFURLSessionManager alloc] initWithSessionConfiguration:[NSURLSessionConfiguration defaultSessionConfiguration]];
+    item.manager = manager;
     /* 下载地址 */
     NSURL *url = [NSURL URLWithString:item.linker];
     NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url];
@@ -42,41 +42,23 @@ static MLDownManager *manager = nil;
     NSString *range = [NSString stringWithFormat:@"bytes=%lld-", [item fileSizeAtPath:filePath]];
     [request setValue:range forHTTPHeaderField:@"Range"];
     
-    /* 开始请求下载 */
-    NSURLSessionDownloadTask *downloadTask = [manager downloadTaskWithRequest:request progress:^(NSProgress * _Nonnull downloadProgress) {
-        
-        NSLog(@"下载进度：%.0f％", downloadProgress.fractionCompleted * 100);
-        NSInteger downLoadProgress = downloadProgress.fractionCompleted * 100;
-        item.percent = downLoadProgress;
-        
-        dispatch_async(dispatch_get_main_queue(), ^{
-            if(item.itemDelegate&&[item.itemDelegate respondsToSelector:@selector(downLoadProgressWithid:)]){
-                [item.itemDelegate downLoadProgressWithid:item.linker];
-            }
-
-        });
-        
-    } destination:^NSURL * _Nonnull(NSURL * _Nonnull targetPath, NSURLResponse * _Nonnull response) {
-        
-        /* 设定下载到的位置 */
-        return [NSURL fileURLWithPath:filePath];
-        
-    } completionHandler:^(NSURLResponse * _Nonnull response, NSURL * _Nullable filePath, NSError * _Nullable error) {
-        if(item.percent < 100) return ;
+    item.task = [item.manager dataTaskWithRequest:request completionHandler:^(NSURLResponse * _Nonnull response, id  _Nullable responseObject, NSError * _Nullable error) {
+        // 关闭fileHandle
+        [item.fileHandle closeFile];
         item.status = Complete;
         [item.task cancel];
         dispatch_async(dispatch_get_main_queue(), ^{
             if(item.itemDelegate&&[item.itemDelegate respondsToSelector:@selector(downLoadProgressWithid:)]){
                 [item.itemDelegate downLoadProgressWithid:item.linker];
             }
-            
         });
-        NSLog(@"下载完成");
     }];
-    item.task = downloadTask;
-    [downloadTask resume];
-    
+    [item setDataTaskRequest];
+    [item setDataTaskReceive];
+    [item.task resume];
 }
+
+
 
 + (void)stopDownLoadWithItem:(MLItemModel *)item{
     [DownloadManager stopDownLoadData:item];
