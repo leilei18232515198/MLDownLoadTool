@@ -36,11 +36,11 @@ static MLDownManager *manager = nil;
     
     /* 下载地址 */
     NSURL *url = [NSURL URLWithString:item.linker];
-    NSURLRequest *request = [NSURLRequest requestWithURL:url];
-    
+    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url];
     /* 下载路径 */
-    NSString *path = [NSHomeDirectory() stringByAppendingPathComponent:@"Documents"];
-    NSString *filePath = [path stringByAppendingPathComponent:url.lastPathComponent];
+    NSString *filePath = [item getFilePath];
+    NSString *range = [NSString stringWithFormat:@"bytes=%lld-", [item fileSizeAtPath:filePath]];
+    [request setValue:range forHTTPHeaderField:@"Range"];
     
     /* 开始请求下载 */
     NSURLSessionDownloadTask *downloadTask = [manager downloadTaskWithRequest:request progress:^(NSProgress * _Nonnull downloadProgress) {
@@ -72,7 +72,6 @@ static MLDownManager *manager = nil;
             
         });
         NSLog(@"下载完成");
-        
     }];
     item.task = downloadTask;
     [downloadTask resume];
@@ -84,7 +83,6 @@ static MLDownManager *manager = nil;
 }
 
 - (void)stopDownLoadData:(MLItemModel *)item{
-   
     [item.task suspend];
     item.status = Pause;
 }

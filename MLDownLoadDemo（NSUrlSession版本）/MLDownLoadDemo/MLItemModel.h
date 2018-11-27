@@ -16,7 +16,12 @@
 @property NSString *name;
 @property NSInteger percent;
 @property downLoadStatus status;
-@property NSURLSessionDownloadTask* task;
+@property NSURLSessionDataTask* task;
+@property NSURLSession *session;
+@property (nonatomic , strong) NSOutputStream *stream;
+@property (nonatomic , assign) NSInteger totalLength;
 @property id<itemDelegate> itemDelegate;
 
+- (NSString *)getFilePath;
+- (void)cancelTask;
 @end
